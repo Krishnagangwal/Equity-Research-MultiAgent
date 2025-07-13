@@ -1,4 +1,4 @@
-# AI-Powered Multi-Agent System for Enterprise-Grade Stock Research
+# AI-Powered Multi-Agent System for Industry level Stock Research Analyst
 This system automates the process of generating professional-grade equity research reports for public companies. It replicates the work of human equity analysts by extracting, parsing, analyzing, and reporting on financial documents such as 10-K, 10-Q, earnings call summaries, valuation metrics, and financial news — all within minutes.
 ##  Overview  
 ###  Modular Architecture  
