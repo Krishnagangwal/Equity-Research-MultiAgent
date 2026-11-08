@@ -1,0 +1,578 @@
+{
+  "name": "VIRAL HOOK MAKER v2",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 👋 VIRAL HOOK MAKER: one-time setup\n1. **Apify**: Credentials → New → *Header Auth*\n   Name: `Authorization`  Value: `Bearer YOUR_APIFY_TOKEN`\n   Select it in **Scrape TikTok (Apify)**.\n2. **OpenAI**: Credentials → New → *OpenAI API* (paste key).\n   Select it in **Transcribe (Whisper)** and **Write Hooks (OpenAI)**.\n3. **Google Sheets**: Credentials → *Google Sheets OAuth2*.\n   Select it in both green Sheets nodes.\n4. Make a Google Sheet with 2 tabs: `data` and `final result`.\n5. Open **Config**: paste the sheet link, set your topic.\n\nThen click **Execute workflow**. Results land in the `final result` tab.",
+        "width": 460,
+        "height": 420,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -260
+      ],
+      "id": "23e9839f-5cd1-42e4-aab6-e27a59cc72bb",
+      "name": "Note: Setup"
+    },
+    {
+      "parameters": {
+        "content": "## ✏️ Before every run\nOnly edit **Config**:\n- `topic`: your next video\n- `profiles`: creators to learn from\n- `videosPerProfile` / `maxAgeDays`: sample size & timeframe\n\nNo need to clear the sheet: every row has a `runId`.",
+        "width": 380,
+        "height": 260,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -260
+      ],
+      "id": "f6cf4157-4116-4779-9d7f-aad3ade7d8f4",
+      "name": "Note: Edit me"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ],
+      "id": "a09fd11b-de95-4909-8be5-21ad56abbd21",
+      "name": "Run Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n//  CONFIG — this is the ONLY node you need to edit before each run.\n// =====================================================================\nreturn [{\n  json: {\n    // 1) What your next video is about. The AI writes hooks for THIS.\n    topic: \"my video topic is about how meditation can change your life and give you clarity in your 20s\",\n\n    // 2) Paste the full link of your Google Sheet (it needs tabs named \"data\" and \"final result\").\n    googleSheetUrl: \"https://docs.google.com/spreadsheets/d/1LxnAdLJVjYSc0UosFGZt60JivLWW2kUmjE_gtGdaFkk/edit\",\n\n    // 3) TikTok usernames to learn from (no @). Add or remove freely.\n    profiles: [\n      \"Minolee.mp4\", \"mino1ee\", \"Briarcochran\", \"Katiexsocials\", \"Jun_yuh\",\n      \"Iamjeanblack\", \"Joelroac\", \"Prosper_chiu\", \"Jayhoovy\", \"Jimrtang\",\n      \"Ray_fu\", \"Nate.b.jones\", \"Dus_davis\", \"Higherupwellness\", \"T_nutrition_fitness\",\n      \"Jacoboestreichercoaching\", \"Scotty.k.fitness\", \"Baxate_carter\", \"Andrewivx7.0\",\n      \"Sajjaadkhader\", \"Your_finance_brother\", \"Chrisheynjr\", \"Daddywellness\",\n      \"Ryan.magin\", \"Squidpakter\", \"Nomadatoast\", \"Calebboxxofficial\", \"Kanekallaway\",\n      \"Askcatgpt\", \"Rpn\", \"Sebastienjefferies\", \"Sabrina_ramonov\", \"Benkaluza\", \"iamjadenly\"\n    ],\n\n    // 4) Knobs (defaults are sensible)\n    videosPerProfile: 2,        // latest N videos per profile (more = better data, higher Apify cost)\n    maxAgeDays: 30,             // ignore videos older than this\n    topPercent: 0.30,           // keep the top 30% by viral score\n    maxVideosToTranscribe: 25,  // hard cap so a big run can't surprise you on cost\n    hookSeconds: 7,             // how much of the start of each video counts as \"the hook\"\n    hookCount: 10,              // how many new hooks to write\n    model: \"gpt-4.1-mini\",      // OpenAI model that writes the hooks\n\n    // Auto-filled: lets you tell runs apart in the sheet\n    runId: new Date().toISOString()\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        100
+      ],
+      "id": "17873d24-1245-4450-86ef-3daf08622bed",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clockworks~tiktok-scraper/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ profiles: $json.profiles, resultsPerPage: $json.videosPerProfile, oldestPostDateUnified: $json.maxAgeDays + ' days', profileScrapeSections: ['videos'], profileSorting: 'latest', excludePinnedPosts: true, shouldDownloadVideos: false, shouldDownloadCovers: false, shouldDownloadSubtitles: false, shouldDownloadSlideshowImages: false }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        100
+      ],
+      "id": "d51cce62-128f-405a-9d7e-5282611e2a2c",
+      "name": "Scrape TikTok (Apify)",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cleans the Apify output, drops old/broken rows, scores each video, keeps the best.\nconst cfg = $('Config').first().json;\nconst now = Date.now();\nconst cutoff = now - cfg.maxAgeDays * 864e5;\n\nconst seen = new Set();\nconst videos = [];\n\nfor (const item of $input.all()) {\n  const v = item.json || {};\n  // Apify returns rows like { error: \"...\" } for profiles it can't find: skip them.\n  if (!v.id || !v.webVideoUrl) continue;\n  if (seen.has(String(v.id))) continue;\n  seen.add(String(v.id));\n\n  const createdMs = (Number(v.createTime) * 1000) || Date.parse(v.createTimeISO) || 0;\n  if (!createdMs || createdMs < cutoff) continue;\n\n  const views = Number(v.playCount) || 0;\n  const followers = Number(v.authorMeta?.fans) || 0;\n  const ageDays = Math.max((now - createdMs) / 864e5, 0.1);\n  const viewsPerDay = views / ageDays;\n  // Growth-adjusted score: rewards small accounts that pop, not just big accounts.\n  const viralScore = viewsPerDay / Math.pow(Math.max(followers, 1), 0.35);\n\n  videos.push({\n    json: {\n      author: v.authorMeta?.name ?? null,\n      followers,\n      videoUrl: v.webVideoUrl,\n      caption: (v.text || '').trim(),\n      views,\n      likes: Number(v.diggCount) || 0,\n      comments: Number(v.commentCount) || 0,\n      shares: Number(v.shareCount) || 0,\n      durationSec: v.videoMeta?.duration ?? null,\n      postedAt: new Date(createdMs).toISOString(),\n      ageDays: Number(ageDays.toFixed(2)),\n      viewsPerDay: Math.round(viewsPerDay),\n      viralScore: Number(viralScore.toFixed(2))\n    }\n  });\n}\n\nif (!videos.length) {\n  throw new Error('Apify returned no usable videos. Check the Apify credential, the profile names, and maxAgeDays in the Config node.');\n}\n\nvideos.sort((a, b) => b.json.viralScore - a.json.viralScore);\nconst keep = Math.min(Math.max(Math.ceil(videos.length * cfg.topPercent), 1), cfg.maxVideosToTranscribe);\nreturn videos.slice(0, keep);\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        100
+      ],
+      "id": "a3fbb7dd-0b61-42b4-8eff-0d9195fa3a92",
+      "name": "Score & Keep Top Videos"
+    },
+    {
+      "parameters": {
+        "url": "https://www.tikwm.com/api/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.videoUrl }}"
+            },
+            {
+              "name": "hd",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ],
+      "id": "c593a825-53a0-40df-990e-84471764fe36",
+      "name": "Get Media Link (TikWM)",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Picks the downloadable media link out of each TikWM response.\n// Prefers the actual video (has the creator's voice) over the \"music\" track\n// (which is often a song, not speech). Falls back to music only if the video is too big for Whisper.\nconst videos = $('Score & Keep Top Videos').all();\nconst MAX_BYTES = 24 * 1024 * 1024; // Whisper upload limit is 25 MB\nconst out = [];\nlet skipped = 0;\n\n$input.all().forEach((item, i) => {\n  const r = item.json || {};\n  const d = r.data || {};\n  const tooBig = Number(d.size) > MAX_BYTES;\n  let url = (!tooBig && d.play) || d.music || null;\n  if (r.code !== 0 || !url || !videos[i]) { skipped++; return; }\n  if (url.startsWith('/')) url = 'https://www.tikwm.com' + url;\n\n  out.push({\n    json: { ...videos[i].json, mediaUrl: url, mediaType: url === d.music ? 'audio' : 'video' },\n    pairedItem: { item: i }\n  });\n});\n\nif (!out.length) {\n  throw new Error(`TikWM could not return media for any of the ${skipped} videos. It may be rate-limiting you; wait a few minutes and run again.`);\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        100
+      ],
+      "id": "046946cf-55cf-4f55-8b24-7ced03b419d0",
+      "name": "Extract Media URL"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.mediaUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        100
+      ],
+      "id": "953b4a4c-035b-487e-8179-99dee2d557e6",
+      "name": "Download Media",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gives every downloaded file a proper name/extension so OpenAI accepts it,\n// and re-attaches the video info. Failed downloads are dropped here.\nconst metas = $('Extract Media URL').all();\nconst out = [];\n\n$input.all().forEach((item, i) => {\n  const bin = item.binary?.data;\n  const meta = metas[i]?.json;\n  if (!bin || !meta) return;\n  const isVideo = meta.mediaType === 'video';\n  bin.fileName = `clip_${i + 1}.${isVideo ? 'mp4' : 'mp3'}`;\n  bin.fileExtension = isVideo ? 'mp4' : 'mp3';\n  bin.mimeType = isVideo ? 'video/mp4' : 'audio/mpeg';\n  out.push({ json: meta, binary: { data: bin }, pairedItem: { item: i } });\n});\n\nif (!out.length) throw new Error('None of the TikTok media files could be downloaded.');\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        100
+      ],
+      "id": "f6115734-b91f-4c4d-a152-ebde68214dbf",
+      "name": "Name Media File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-1"
+            },
+            {
+              "name": "response_format",
+              "value": "verbose_json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        100
+      ],
+      "id": "ebbefad8-6495-41b9-b431-42b7ac61bf43",
+      "name": "Transcribe (Whisper)",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combines each transcript with its video info and cuts out the first N seconds = the hook.\nconst cfg = $('Config').first().json;\nconst metas = $('Name Media File').all();\nconst savedAt = new Date().toISOString();\nconst rows = [];\n\n$input.all().forEach((item, i) => {\n  const meta = metas[i]?.json;\n  if (!meta) return;\n  const w = item.json || {};\n  const segs = Array.isArray(w.segments) ? w.segments : [];\n  const hookSegs = segs.filter(s => Number(s.start) < cfg.hookSeconds);\n\n  let hookTranscript = hookSegs.map(s => String(s.text || '').trim()).join(' ').trim();\n  if (!hookTranscript && w.text) hookTranscript = String(w.text).split(/\\s+/).slice(0, 20).join(' ');\n\n  // Whisper tells us how likely each segment is to be \"not speech\" (music, silence).\n  const noSpeech = hookSegs.length\n    ? hookSegs.reduce((a, s) => a + (Number(s.no_speech_prob) || 0), 0) / hookSegs.length\n    : 1;\n  const spokenHook = hookTranscript.length > 0 && noSpeech < 0.5 ? 'yes' : 'no';\n\n  rows.push({\n    json: {\n      runId: cfg.runId,\n      author: meta.author,\n      followers: meta.followers,\n      videoUrl: meta.videoUrl,\n      caption: meta.caption,\n      views: meta.views,\n      likes: meta.likes,\n      comments: meta.comments,\n      shares: meta.shares,\n      durationSec: meta.durationSec,\n      postedAt: meta.postedAt,\n      viewsPerDay: meta.viewsPerDay,\n      viralScore: meta.viralScore,\n      hookTranscript,\n      spokenHook,\n      fullTranscript: String(w.text || '').slice(0, 2000),\n      status: w.error ? 'transcription_failed' : 'ok',\n      savedAt\n    }\n  });\n});\n\nif (!rows.length) throw new Error('No transcripts came back from OpenAI. Check the OpenAI credential and that your account has credit.');\nreturn rows;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        100
+      ],
+      "id": "adb7b972-c7fc-49d0-8990-b4ea6c470a5f",
+      "name": "Build Hook Rows"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.googleSheetUrl }}",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "data",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2200,
+        -40
+      ],
+      "id": "b6c51786-2ac9-456d-9fe3-9063fb7f09f3",
+      "name": "Save Videos to Sheet"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds one request for the AI: learn from the winning hooks, then write new ones for your topic.\nconst cfg = $('Config').first().json;\nconst rows = $input.all().map(i => i.json).sort((a, b) => b.viralScore - a.viralScore);\n\nconst spoken = rows.filter(r => r.spokenHook === 'yes');\nconst textOnly = rows.filter(r => r.spokenHook !== 'yes' && r.caption);\n\nconst fmt = (r, n) => [\n  `Example #${n} (viral score ${r.viralScore}, ${r.views.toLocaleString('en-US')} views, @${r.author}, ${r.followers.toLocaleString('en-US')} followers)`,\n  `Spoken hook (first ${cfg.hookSeconds}s, auto-transcribed, may contain small errors): ${r.hookTranscript || '(none)'}`,\n  `Caption: ${r.caption || '(none)'}`\n].join('\\n');\n\nlet n = 0;\nconst spokenBlock = spoken.map(r => fmt(r, ++n)).join('\\n\\n');\nconst textBlock = textOnly.map(r => fmt(r, ++n)).join('\\n\\n');\n\nconst system = `You are a world-class short-form video strategist and hook writer. A hook is the first 1-3 seconds of a TikTok/Reel/Short: the words spoken (and shown on screen) that stop the scroll.\n\nYou will be given real hooks from recent videos that statistically outperformed their creators' follower counts. Study them first: for each, infer the audience, the promise, the emotional trigger and the structure (bold claim, contrarian take, curiosity gap, specific number, \"POV\", direct callout, story-in-media-res, mistake/warning, etc.).\n\nData quality rules:\n- Spoken hooks are automatic transcripts; fix obvious mishearings using the caption.\n- If a \"spoken hook\" reads like song lyrics or nonsense, ignore its wording and learn only from its caption.\n- Learn the PATTERNS. Never copy a hook word for word.\n\nOutput rules:\n- Return ONLY valid JSON, no markdown, in exactly this shape:\n{\"hooks\":[{\"hook\":\"the words to say out loud\",\"onScreenText\":\"short text overlay, max 8 words\",\"pattern\":\"name of the pattern used\",\"inspiredBy\":\"Example #N\",\"whyItWorks\":\"one sentence\"}]}`;\n\nconst user = `TRAINING DATA: ${rows.length} high-performing videos.\n\n=== SPOKEN HOOKS (strongest signal) ===\n${spokenBlock || '(none this run)'}\n\n=== CAPTION-ONLY / MUSIC VIDEOS (weaker signal) ===\n${textBlock || '(none this run)'}\n\n=== YOUR TASK ===\nWrite exactly ${cfg.hookCount} new hooks for this video:\n\"${cfg.topic}\"\n\nEach hook must:\n- grab attention in the first second and be speakable in under 3 seconds (roughly 6-15 words)\n- use a pattern that clearly appears in the training data (mix several different patterns)\n- be specific: concrete numbers, ages, timeframes or situations beat vague claims\n- sound like a real person talking to camera, not an ad, and not like song lyrics\n- be honest: no claims the video can't deliver on`;\n\nreturn [{\n  json: {\n    exampleCount: rows.length,\n    body: {\n      model: cfg.model,\n      response_format: { type: 'json_object' },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: user }\n      ]\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        240
+      ],
+      "id": "183c9f4d-94cf-4122-b9ab-f8091d65206a",
+      "name": "Build AI Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        240
+      ],
+      "id": "d115fd27-75a6-49d8-8c65-9008e6ae3b4b",
+      "name": "Write Hooks (OpenAI)",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turns the AI's JSON answer into one row per hook for the \"final result\" tab.\nconst cfg = $('Config').first().json;\nconst res = $input.first().json;\nconst content = res.choices?.[0]?.message?.content || '';\n\nlet parsed;\ntry {\n  parsed = JSON.parse(content.replace(/^```(?:json)?\\s*|\\s*```$/g, ''));\n} catch (e) {\n  throw new Error('The AI did not return valid JSON. First 500 characters: ' + content.slice(0, 500));\n}\n\nconst hooks = Array.isArray(parsed.hooks) ? parsed.hooks : [];\nif (!hooks.length) throw new Error('The AI returned no hooks: ' + content.slice(0, 500));\n\nconst examplesUsed = $('Build AI Prompt').first().json.exampleCount;\nconst createdAt = new Date().toISOString();\n\nreturn hooks.map((h, i) => ({\n  json: {\n    runId: cfg.runId,\n    topic: cfg.topic,\n    rank: i + 1,\n    hook: String(h.hook || '').trim(),\n    onScreenText: String(h.onScreenText || '').trim(),\n    pattern: String(h.pattern || '').trim(),\n    inspiredBy: String(h.inspiredBy || '').trim(),\n    whyItWorks: String(h.whyItWorks || '').trim(),\n    examplesUsed,\n    createdAt\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        240
+      ],
+      "id": "4ffc0ac3-4edc-4547-b10a-353d2a69f00d",
+      "name": "Parse Hooks"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.googleSheetUrl }}",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "final result",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2860,
+        240
+      ],
+      "id": "38fa6f74-550a-401e-b783-e81650c9a4c7",
+      "name": "Save Hooks to Sheet"
+    },
+    {
+      "parameters": {
+        "content": "## 1. Pull & score\nScrapes the latest videos, drops old ones, scores them by views/day vs. follower count, keeps the top 30%.",
+        "width": 480,
+        "height": 320,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -60
+      ],
+      "id": "d0869961-8052-4ecd-b677-32d0aa753dec",
+      "name": "Note: Pull"
+    },
+    {
+      "parameters": {
+        "content": "## 2. Grab the hook\nGets each video, transcribes it, and keeps the first 7 seconds. No ffmpeg or disk writes needed, so it also works on n8n Cloud.",
+        "width": 1300,
+        "height": 320,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        860,
+        -60
+      ],
+      "id": "b1618672-430d-48d1-bf19-a6be53775c14",
+      "name": "Note: Hooks"
+    },
+    {
+      "parameters": {
+        "content": "## 3. Write new hooks\nTeaches the AI with the winners, then writes hooks for your topic.",
+        "width": 880,
+        "height": 260,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        160
+      ],
+      "id": "bc3f437e-3355-437e-9c08-c994d24dcb39",
+      "name": "Note: AI"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Run Workflow": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Scrape TikTok (Apify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape TikTok (Apify)": {
+      "main": [
+        [
+          {
+            "node": "Score & Keep Top Videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score & Keep Top Videos": {
+      "main": [
+        [
+          {
+            "node": "Get Media Link (TikWM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Media Link (TikWM)": {
+      "main": [
+        [
+          {
+            "node": "Extract Media URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Media URL": {
+      "main": [
+        [
+          {
+            "node": "Download Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Media": {
+      "main": [
+        [
+          {
+            "node": "Name Media File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Name Media File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe (Whisper)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe (Whisper)": {
+      "main": [
+        [
+          {
+            "node": "Build Hook Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Hook Rows": {
+      "main": [
+        [
+          {
+            "node": "Save Videos to Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "Write Hooks (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Hooks (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Parse Hooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Hooks": {
+      "main": [
+        [
+          {
+            "node": "Save Hooks to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
