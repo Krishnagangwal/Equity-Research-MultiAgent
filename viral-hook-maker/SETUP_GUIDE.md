@@ -9,7 +9,7 @@ An n8n workflow that:
 5. saves everything to Google Sheets.
 
 File to import: [`VIRAL_HOOK_MAKER_v2.json`](./VIRAL_HOOK_MAKER_v2.json)
-Google Sheet (already created, with tabs `data` and `final result`):
+Google Sheet (already created and linked in both Sheets nodes, with tabs `data` and `final result`):
 https://docs.google.com/spreadsheets/d/1LxnAdLJVjYSc0UosFGZt60JivLWW2kUmjE_gtGdaFkk/edit
 
 ---
@@ -38,7 +38,7 @@ Open each node below, click the **Credential** dropdown, choose **Create new**:
 ## Step 3: Check the Config node
 Open **Config**. It's the only node you ever edit:
 - `topic`: what your next video is about (the AI writes hooks for this)
-- `googleSheetUrl`: **already filled in** with the sheet above
+- The sheet above is already linked in both Google Sheets nodes
 - `profiles`: the creators to learn from (your original 34 are already there)
 - `videosPerProfile`, `maxAgeDays`, `topPercent`, `maxVideosToTranscribe`, `hookCount`, `model`
 

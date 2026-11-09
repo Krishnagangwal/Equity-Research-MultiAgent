@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## 👋 VIRAL HOOK MAKER: one-time setup\n1. **Apify**: Credentials → New → *Header Auth*\n   Name: `Authorization`  Value: `Bearer YOUR_APIFY_TOKEN`\n   Select it in **Scrape TikTok (Apify)**.\n2. **OpenAI**: Credentials → New → *OpenAI API* (paste key).\n   Select it in **Transcribe (Whisper)** and **Write Hooks (OpenAI)**.\n3. **Google Sheets**: Credentials → *Google Sheets OAuth2*.\n   Select it in both green Sheets nodes.\n4. Make a Google Sheet with 2 tabs: `data` and `final result`.\n5. Open **Config**: paste the sheet link, set your topic.\n\nThen click **Execute workflow**. Results land in the `final result` tab.",
+        "content": "## 👋 VIRAL HOOK MAKER: one-time setup\n1. **Apify**: Credentials → New → *Header Auth*\n   Name: `Authorization`  Value: `Bearer YOUR_APIFY_TOKEN`\n   Select it in **Scrape TikTok (Apify)**.\n2. **OpenAI**: Credentials → New → *OpenAI API* (paste key).\n   Select it in **Transcribe (Whisper)** and **Write Hooks (OpenAI)**.\n3. **Google Sheets**: Credentials → *Google Sheets OAuth2*.\n   Select it in both green Sheets nodes.\n4. Make a Google Sheet with 2 tabs: `data` and `final result`.\n5. Open **Config** and set your topic. (To use a different sheet, change it in both Sheets nodes.)\n\nThen click **Execute workflow**. Results land in the `final result` tab.",
         "width": 460,
         "height": 420,
         "color": 4
@@ -14,7 +14,7 @@
         -480,
         -260
       ],
-      "id": "23e9839f-5cd1-42e4-aab6-e27a59cc72bb",
+      "id": "9fd87c56-0f9a-4d31-adf2-29063583acd5",
       "name": "Note: Setup"
     },
     {
@@ -30,7 +30,7 @@
         0,
         -260
       ],
-      "id": "f6cf4157-4116-4779-9d7f-aad3ade7d8f4",
+      "id": "db1284a0-7051-4428-af0e-7677bff3ac46",
       "name": "Note: Edit me"
     },
     {
@@ -41,12 +41,12 @@
         0,
         100
       ],
-      "id": "a09fd11b-de95-4909-8be5-21ad56abbd21",
+      "id": "b4baa74f-5526-4e5f-9e98-9eda699ec4fc",
       "name": "Run Workflow"
     },
     {
       "parameters": {
-        "jsCode": "// =====================================================================\n//  CONFIG — this is the ONLY node you need to edit before each run.\n// =====================================================================\nreturn [{\n  json: {\n    // 1) What your next video is about. The AI writes hooks for THIS.\n    topic: \"my video topic is about how meditation can change your life and give you clarity in your 20s\",\n\n    // 2) Paste the full link of your Google Sheet (it needs tabs named \"data\" and \"final result\").\n    googleSheetUrl: \"https://docs.google.com/spreadsheets/d/1LxnAdLJVjYSc0UosFGZt60JivLWW2kUmjE_gtGdaFkk/edit\",\n\n    // 3) TikTok usernames to learn from (no @). Add or remove freely.\n    profiles: [\n      \"Minolee.mp4\", \"mino1ee\", \"Briarcochran\", \"Katiexsocials\", \"Jun_yuh\",\n      \"Iamjeanblack\", \"Joelroac\", \"Prosper_chiu\", \"Jayhoovy\", \"Jimrtang\",\n      \"Ray_fu\", \"Nate.b.jones\", \"Dus_davis\", \"Higherupwellness\", \"T_nutrition_fitness\",\n      \"Jacoboestreichercoaching\", \"Scotty.k.fitness\", \"Baxate_carter\", \"Andrewivx7.0\",\n      \"Sajjaadkhader\", \"Your_finance_brother\", \"Chrisheynjr\", \"Daddywellness\",\n      \"Ryan.magin\", \"Squidpakter\", \"Nomadatoast\", \"Calebboxxofficial\", \"Kanekallaway\",\n      \"Askcatgpt\", \"Rpn\", \"Sebastienjefferies\", \"Sabrina_ramonov\", \"Benkaluza\", \"iamjadenly\"\n    ],\n\n    // 4) Knobs (defaults are sensible)\n    videosPerProfile: 2,        // latest N videos per profile (more = better data, higher Apify cost)\n    maxAgeDays: 30,             // ignore videos older than this\n    topPercent: 0.30,           // keep the top 30% by viral score\n    maxVideosToTranscribe: 25,  // hard cap so a big run can't surprise you on cost\n    hookSeconds: 7,             // how much of the start of each video counts as \"the hook\"\n    hookCount: 10,              // how many new hooks to write\n    model: \"gpt-4.1-mini\",      // OpenAI model that writes the hooks\n\n    // Auto-filled: lets you tell runs apart in the sheet\n    runId: new Date().toISOString()\n  }\n}];\n"
+        "jsCode": "// =====================================================================\n//  CONFIG — this is the ONLY node you need to edit before each run.\n// =====================================================================\nreturn [{\n  json: {\n    // 1) What your next video is about. The AI writes hooks for THIS.\n    topic: \"my video topic is about how meditation can change your life and give you clarity in your 20s\",\n\n    // 2) TikTok usernames to learn from (no @). Add or remove freely.\n    profiles: [\n      \"Minolee.mp4\", \"mino1ee\", \"Briarcochran\", \"Katiexsocials\", \"Jun_yuh\",\n      \"Iamjeanblack\", \"Joelroac\", \"Prosper_chiu\", \"Jayhoovy\", \"Jimrtang\",\n      \"Ray_fu\", \"Nate.b.jones\", \"Dus_davis\", \"Higherupwellness\", \"T_nutrition_fitness\",\n      \"Jacoboestreichercoaching\", \"Scotty.k.fitness\", \"Baxate_carter\", \"Andrewivx7.0\",\n      \"Sajjaadkhader\", \"Your_finance_brother\", \"Chrisheynjr\", \"Daddywellness\",\n      \"Ryan.magin\", \"Squidpakter\", \"Nomadatoast\", \"Calebboxxofficial\", \"Kanekallaway\",\n      \"Askcatgpt\", \"Rpn\", \"Sebastienjefferies\", \"Sabrina_ramonov\", \"Benkaluza\", \"iamjadenly\"\n    ],\n\n    // 3) Knobs (defaults are sensible)\n    videosPerProfile: 2,        // latest N videos per profile (more = better data, higher Apify cost)\n    maxAgeDays: 30,             // ignore videos older than this\n    topPercent: 0.30,           // keep the top 30% by viral score\n    maxVideosToTranscribe: 25,  // hard cap so a big run can't surprise you on cost\n    hookSeconds: 7,             // how much of the start of each video counts as \"the hook\"\n    hookCount: 10,              // how many new hooks to write\n    model: \"gpt-4.1-mini\",      // OpenAI model that writes the hooks\n\n    // Auto-filled: lets you tell runs apart in the sheet\n    runId: new Date().toISOString()\n  }\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -54,7 +54,7 @@
         220,
         100
       ],
-      "id": "17873d24-1245-4450-86ef-3daf08622bed",
+      "id": "db720a9b-8ac8-4227-9d91-116a9c1f558e",
       "name": "Config"
     },
     {
@@ -76,7 +76,7 @@
         440,
         100
       ],
-      "id": "d51cce62-128f-405a-9d7e-5282611e2a2c",
+      "id": "57615779-4dd4-41df-a7ac-afa68eda917b",
       "name": "Scrape TikTok (Apify)",
       "retryOnFail": true,
       "maxTries": 2,
@@ -92,7 +92,7 @@
         660,
         100
       ],
-      "id": "a3fbb7dd-0b61-42b4-8eff-0d9195fa3a92",
+      "id": "893fe619-a24c-4e69-9f68-50e259e4153f",
       "name": "Score & Keep Top Videos"
     },
     {
@@ -132,7 +132,7 @@
         880,
         100
       ],
-      "id": "c593a825-53a0-40df-990e-84471764fe36",
+      "id": "8dca5709-adfc-4fa4-87d2-24888a3db693",
       "name": "Get Media Link (TikWM)",
       "retryOnFail": true,
       "maxTries": 3,
@@ -149,7 +149,7 @@
         1100,
         100
       ],
-      "id": "046946cf-55cf-4f55-8b24-7ced03b419d0",
+      "id": "31846d2f-2511-4a16-afd8-ed79d618574e",
       "name": "Extract Media URL"
     },
     {
@@ -180,7 +180,7 @@
         1320,
         100
       ],
-      "id": "953b4a4c-035b-487e-8179-99dee2d557e6",
+      "id": "f7de8cbc-e08f-480e-9be8-f008fc67f941",
       "name": "Download Media",
       "retryOnFail": true,
       "maxTries": 2,
@@ -197,7 +197,7 @@
         1540,
         100
       ],
-      "id": "f6115734-b91f-4c4d-a152-ebde68214dbf",
+      "id": "f304caaf-e641-4a5b-ad27-8afdcd5663cb",
       "name": "Name Media File"
     },
     {
@@ -235,7 +235,7 @@
         1760,
         100
       ],
-      "id": "ebbefad8-6495-41b9-b431-42b7ac61bf43",
+      "id": "1b06bbc4-24a5-4444-841b-f8e334aa0c05",
       "name": "Transcribe (Whisper)",
       "retryOnFail": true,
       "maxTries": 2,
@@ -252,7 +252,7 @@
         1980,
         100
       ],
-      "id": "adb7b972-c7fc-49d0-8990-b4ea6c470a5f",
+      "id": "c8e5f721-9d85-4f28-8fa7-5b629ff41a51",
       "name": "Build Hook Rows"
     },
     {
@@ -260,8 +260,9 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "={{ $('Config').first().json.googleSheetUrl }}",
-          "mode": "url"
+          "value": "1LxnAdLJVjYSc0UosFGZt60JivLWW2kUmjE_gtGdaFkk",
+          "mode": "id",
+          "cachedResultName": "Viral Hook Maker"
         },
         "sheetName": {
           "__rl": true,
@@ -284,7 +285,7 @@
         2200,
         -40
       ],
-      "id": "b6c51786-2ac9-456d-9fe3-9063fb7f09f3",
+      "id": "54bbbb8f-156f-4483-9950-bafdda273211",
       "name": "Save Videos to Sheet"
     },
     {
@@ -297,7 +298,7 @@
         2200,
         240
       ],
-      "id": "183c9f4d-94cf-4122-b9ab-f8091d65206a",
+      "id": "6248833f-9ee6-4623-b230-eb71b53d639b",
       "name": "Build AI Prompt"
     },
     {
@@ -319,7 +320,7 @@
         2420,
         240
       ],
-      "id": "d115fd27-75a6-49d8-8c65-9008e6ae3b4b",
+      "id": "1ebfe43a-107e-40a2-9f69-9400cc5abc35",
       "name": "Write Hooks (OpenAI)",
       "retryOnFail": true,
       "maxTries": 2,
@@ -335,7 +336,7 @@
         2640,
         240
       ],
-      "id": "4ffc0ac3-4edc-4547-b10a-353d2a69f00d",
+      "id": "8fccab69-194a-49e3-8821-97f56f0d9b00",
       "name": "Parse Hooks"
     },
     {
@@ -343,8 +344,9 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "={{ $('Config').first().json.googleSheetUrl }}",
-          "mode": "url"
+          "value": "1LxnAdLJVjYSc0UosFGZt60JivLWW2kUmjE_gtGdaFkk",
+          "mode": "id",
+          "cachedResultName": "Viral Hook Maker"
         },
         "sheetName": {
           "__rl": true,
@@ -367,7 +369,7 @@
         2860,
         240
       ],
-      "id": "38fa6f74-550a-401e-b783-e81650c9a4c7",
+      "id": "8703faa0-b727-4a8a-8e07-0d4e7c2e0140",
       "name": "Save Hooks to Sheet"
     },
     {
@@ -383,7 +385,7 @@
         400,
         -60
       ],
-      "id": "d0869961-8052-4ecd-b677-32d0aa753dec",
+      "id": "cbc22629-3a68-4be9-9dde-ff287bff6407",
       "name": "Note: Pull"
     },
     {
@@ -399,7 +401,7 @@
         860,
         -60
       ],
-      "id": "b1618672-430d-48d1-bf19-a6be53775c14",
+      "id": "a5e07a7d-c2cb-4109-90c7-1eacfa6d5c4f",
       "name": "Note: Hooks"
     },
     {
@@ -415,7 +417,7 @@
         2160,
         160
       ],
-      "id": "bc3f437e-3355-437e-9c08-c994d24dcb39",
+      "id": "081aab4e-aa53-48a6-a76a-595bf027e8dd",
       "name": "Note: AI"
     }
   ],
